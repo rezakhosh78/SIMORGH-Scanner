@@ -301,6 +301,10 @@ python RKh-CFS-v0.1.4.py -c "vless://..." -t 104.16.0.0/24 172.64.0.0/24 --concu
 - Suggested workers on Termux: `5` to `20`
 
 ---
+## ⚠️ Donate:
+USDT BEB20 : 0x304B5D9e118732C98FA60c473A763aD5076FFfb0
+
+---
 
 ## ⚠️ Disclaimer
 
