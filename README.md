@@ -1,32 +1,61 @@
-# RKh-CFS v0.1.4
+# RKh-CFS v0.1.4 | @pingplas_channel ⚡
 
-Cloudflare Clean-IP Scanner for VLESS configs using Xray Core.
+A clean and friendly **Cloudflare Clean-IP Scanner** for **VLESS** configs, powered by the real **Xray Core** tunnel.
 
-## What's new in v0.1.4
+RKh-CFS tests every IP with the same VLESS config you give it. For each target, only the outbound server address is replaced; important fields like `UUID`, `SNI`, `Host`, `Path`, transport type, TLS and Reality settings stay untouched. Xray is then started and a real request is sent through the tunnel, so the result is more useful than a simple ping or TCP check.
 
-- More colorful and user-friendly Rich-based TUI.
-- Two main target modes:
-  1. Manual IP/CIDR/range input.
-  2. Packaged ISP range lists.
-- ISP range lists are grouped into:
-  - `Iranian ISPs`
-  - `International ISPs`
-- Multi-select ISP files with arrow keys + Space/Enter, while keeping numeric input like `1`, `1,3,5`, `2-6`, or `all`.
-- Added Back support in target source, ISP category, and ISP list menus (`B` or `Esc`).
-- Clears the screen between TUI stages so only the current step is visible.
-- Added `ip-ranges/iran` for Iranian ISP files.
-- Added `ip-ranges/international` for non-Iranian ISP files.
-- More tolerant IP range parser for trailing spaces, tabs, comments, and `*` markers.
-- Large ranges can be capped with a max target count and sampled evenly across all selected ranges.
-- Added `--list-isps` CLI option.
-- Added CLI ISP selection with `--isp-category` and `--isp`.
-- Selectable latency test URL in the TUI, with `https://www.gstatic.com/generate_204` as the default.
-- Added optional latency re-check after the first scan (`5 real Xray test(s) per IP` by default).
-- Added optional download speed test at the end of the scan, saved in `results/clean_ips_speed_tested.csv`.
+---
 
-## TUI target flow
+## 📦 Editions
 
-After entering the VLESS config, choose one of these target sources:
+| Edition | Main file | Runtime |
+|---|---|---|
+| Windows / Python | `RKh-CFS-v0.1.4.py` | Windows with Python and `xray.exe` |
+| Android / Termux | `RKh-CFS-Termux-v0.1.4.py` | Android with Termux and the Android/Linux `xray` binary |
+
+---
+
+## ✨ What’s new in v0.1.4
+
+- New colorful TUI based on Rich.
+- Cleaner screen flow: each step clears the previous one.
+- Back navigation is available in the main stages.
+- Menus support both:
+  - numeric selection like `1`, `1,3,5`, `2-6`, `all`
+  - arrow-key navigation with `↑ / ↓`, `Space`, and `Enter`
+- Two target modes:
+  1. Manual IP / CIDR / range input
+  2. Built-in ISP range lists
+- ISP lists are grouped into:
+  - Iranian ISPs
+  - International ISPs
+- Manual target input supports multi-line paste.
+- Default maximum targets is unlimited. Press Enter to scan all loaded IPs.
+- If you press `Ctrl+C` during scan, re-check, or speed-test, partial results are saved.
+- Re-checking Latency shows `5 real Xray test(s) per IP` during the optional latency re-check.
+- Termux package now uses `run.sh` and does not include a separate install script.
+
+---
+
+## 🚀 Main features
+
+- Real VLESS testing through Xray Core
+- Manual input for IP, CIDR and IP ranges
+- Paste many manual targets at once
+- Built-in ISP range lists
+- Iranian / International ISP grouping
+- Multi-select ISP scanner
+- Worker-count selection before scanning
+- Optional latency re-check
+- Optional speed-test flow
+- TXT and CSV output
+- CLI mode for automation
+
+---
+
+## 🧭 TUI target flow
+
+After entering your VLESS config, choose the target source:
 
 ```text
 1) Manual IP ranges
@@ -40,23 +69,125 @@ If you choose `ISP range list`, choose a category:
 2) International
 ```
 
-Then select one or more ISP files from the displayed list. Use Up/Down to move, Space to toggle multiple items, and Enter to confirm. Old numeric selection still works. Press `B` or `Esc` to go back.
+Then select one or more ISP files.
 
-## Requirements
+Controls:
 
-Place these files beside the Python script:
-
-- `xray.exe` on Windows or `xray` on Linux/macOS
-- `geoip.dat`
-- `geosite.dat`
-
-Install Python dependencies:
-
-```bash
-pip install -r requirements.txt
+```text
+↑ / ↓      move
+Space      toggle selection
+Enter      confirm
+B / Esc    back
 ```
 
-## Run on Windows
+Numeric input still works too:
+
+```text
+1
+1,3,5
+2-6
+all
+```
+
+---
+
+## 📝 Manual target input
+
+Manual mode accepts:
+
+```text
+104.16.0.1
+104.16.0.0/24
+104.16.0.1-104.16.0.255
+```
+
+You can paste many lines at once:
+
+```text
+104.16.0.0/24
+172.64.0.0/24
+188.114.96.0-188.114.99.255
+```
+
+After the last line, press Enter on an empty line to continue. In practice, after pasting your list, this usually means pressing **Enter twice**.
+
+---
+
+## 🎯 Maximum targets
+
+When the program asks:
+
+```text
+Maximum targets to load/scan (default ∞)
+```
+
+Press Enter to scan every loaded target.
+
+Enter a number only if you want to limit very large ranges:
+
+```text
+5000
+```
+
+With a limit, large ranges are sampled evenly instead of only taking the first IPs.
+
+---
+
+## 📁 Output
+
+Results are saved in the `results` folder:
+
+```text
+results/clean_ips.txt
+results/clean_ips.csv
+results/clean_ips_rechecked.txt
+results/clean_ips_speed_tested.csv
+```
+
+If the scan is interrupted with `Ctrl+C`, partial output is saved with an interrupted filename, for example:
+
+```text
+results/clean_ips_interrupted.txt
+```
+
+---
+
+# 🪟 Windows / Python setup
+
+## Folder layout
+
+After extracting the Windows package, keep this layout:
+
+```text
+RKh-CFS-v0.1.4/
+├─ RKh-CFS-v0.1.4.py
+├─ run_windows.bat
+├─ requirements.txt
+├─ xray.exe
+├─ geoip.dat
+├─ geosite.dat
+├─ ip-ranges/
+├─ configs/temp/
+└─ results/
+```
+
+These files are not bundled and must be placed next to the Python script:
+
+```text
+xray.exe
+geoip.dat
+geosite.dat
+```
+
+## Install dependencies
+
+Open PowerShell inside the project folder:
+
+```powershell
+py -m pip install -r requirements.txt
+```
+
+## Run
 
 ```powershell
 py RKh-CFS-v0.1.4.py
@@ -68,113 +199,42 @@ Or double-click:
 run_windows.bat
 ```
 
-## CLI examples
+---
 
-List packaged ISP files:
+# 🤖 Android / Termux setup
 
-```bash
-python RKh-CFS-v0.1.4.py --list-isps
-```
-
-Scan all Iranian ISP ranges from CLI:
-
-```bash
-python RKh-CFS-v0.1.4.py -c "vless://..." --isp-category iran --isp all --max-hosts 0
-```
-
-Scan selected international ISP ranges:
-
-```bash
-python RKh-CFS-v0.1.4.py -c "vless://..." --isp-category international --isp Fastly Nocix --max-hosts 3000
-```
-
-Manual scan with sampling for huge ranges:
-
-```bash
-python RKh-CFS-v0.1.4.py -c "vless://..." -t 104.16.0.0/16 172.64.0.0/13 --sample-large-ranges --max-hosts 5000
-```
-
-## Latency test URL
-
-During scan settings, you can choose the endpoint used for the real latency request. Move with Up/Down and press Enter to confirm. Numeric selection still works too.
-
-Default:
+The Termux package is separate and is named:
 
 ```text
-https://www.gstatic.com/generate_204
+RKh-CFS-Termux-v0.1.4.zip
 ```
 
-Available options:
+The package does **not** include these files:
 
 ```text
-https://www.gstatic.com/generate_204
-https://cp.cloudflare.com/generate_204
-https://edge.microsoft.com/captiveportal/generate_204
-https://connectivitycheck.gstatic.com/generate_204
+xray
+geoip.dat
+geosite.dat
 ```
 
-For CLI mode, use `--url` to set the same value manually.
+Place them manually next to `run.sh` after extracting the ZIP.
 
-## Re-checking latency and download speed test
-
-After the first scan, if working IPs are found, the scanner can run a second latency check. In this step, each working IP is tested several times through a real Xray connection, for example:
+## Termux folder layout
 
 ```text
-Re-checking Latency
-5 real Xray test(s) per IP
-```
-
-This means the program starts Xray again for every clean IP, sends real requests through the tunnel, repeats the test 5 times per IP by default, and then saves a more stable average latency result in:
-
-```text
-results/clean_ips_rechecked.txt
-```
-
-At the end, the scanner can also run a download speed test on the selected clean IPs. This helps separate IPs that only have good latency from IPs that are actually better for real usage. Speed-test results are saved in:
-
-```text
-results/clean_ips_speed_tested.csv
-```
-
-## Output
-
-Results are saved in:
-
-```text
-results/clean_ips.txt
-results/clean_ips.csv
-results/clean_ips_rechecked.txt
-results/clean_ips_speed_tested.csv
-```
-
-> Use only on IPs/ranges you own or are authorized to test.
-
-Channel: `@pingplas_channel`
-
-## v0.1.4 UI update
-
-- Menus support both numeric selection and arrow-key navigation.
-- Multi-select menus support Space to toggle items and Enter to confirm.
-- Back navigation is available with B or Esc.
-
-## Termux / Android package
-
-A separate Termux package is provided. It does not include `xray`, `geoip.dat`, or `geosite.dat`. Place those files manually beside the Python file after extraction:
-
-```bash
 RKh-CFS-Termux-v0.1.4/
-├── RKh-CFS-Termux-v0.1.4.py
-├── run.sh
-├── requirements.txt
-├── xray
-├── geoip.dat
-├── geosite.dat
-├── ip-ranges/
-├── configs/
-└── results/
+├─ RKh-CFS-Termux-v0.1.4.py
+├─ run.sh
+├─ requirements.txt
+├─ xray
+├─ geoip.dat
+├─ geosite.dat
+├─ ip-ranges/
+├─ configs/temp/
+└─ results/
 ```
 
-Then run:
+## Install and run in Termux
 
 ```bash
 pkg update -y
@@ -190,20 +250,60 @@ chmod +x run.sh
 ./run.sh
 ```
 
+Before running, make sure `xray`, `geoip.dat`, and `geosite.dat` are in the same folder as `run.sh`.
 
-## v0.1.4 notes
+If needed, also make `xray` executable:
 
-- The default Maximum targets value is unlimited; press Enter to scan every IP in the selected ranges. Enter a number only when you want to cap/sample large ranges.
-- If you press Ctrl+C during scan / re-check / speed-test, partial results collected up to that point are saved in the results folder.
+```bash
+chmod +x xray
+```
 
+> Android cannot run Windows `xray.exe`. Use the Android/Linux `xray` binary for Termux.
 
-### v0.1.4 corrective rebuild
-- The large RKh CFS startup logo is kept visible until Enter is pressed.
-- Main TUI stages consistently support Back using `b/back` or `Esc`.
-- `Maximum targets to load/scan` is now asked exactly once after target-source selection.
+---
 
-### Manual input refinement in this build
-- Manual IP ranges no longer ask for one item at a time.
-- You can paste many IP / CIDR / range values at once.
-- Finish manual input with an empty line; after the last pasted line, press Enter twice to continue.
-- A dim helper note is shown directly under the manual input screen.
+## 🧪 CLI examples
+
+List bundled ISP files:
+
+```bash
+python RKh-CFS-v0.1.4.py --list-isps
+```
+
+Scan all Iranian ISP ranges:
+
+```bash
+python RKh-CFS-v0.1.4.py -c "vless://..." --isp-category iran --isp all --max-hosts 0
+```
+
+Scan selected international ISP ranges:
+
+```bash
+python RKh-CFS-v0.1.4.py -c "vless://..." --isp-category international --isp Fastly Nocix --max-hosts 3000
+```
+
+Manual scan:
+
+```bash
+python RKh-CFS-v0.1.4.py -c "vless://..." -t 104.16.0.0/24 172.64.0.0/24 --concurrency 20
+```
+
+---
+
+## ⚙️ Useful notes
+
+- On Windows, the Xray binary is usually named `xray.exe`.
+- On Termux, the binary must be named `xray`.
+- Keep `geoip.dat` and `geosite.dat` beside the script.
+- For Cloudflare-based configs, make sure `SNI` and `Host` are correct.
+- More workers can be faster, but too many workers may cause errors, throttling, overheating, or unstable results.
+- Suggested workers on Windows: `10` to `30`
+- Suggested workers on Termux: `5` to `20`
+
+---
+
+## ⚠️ Disclaimer
+
+RKh-CFS is made for testing your own configs and authorized IP ranges. You are responsible for how you use it.
+
+Channel: `@pingplas_channel`
