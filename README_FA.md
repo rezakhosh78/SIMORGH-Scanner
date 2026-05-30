@@ -100,8 +100,10 @@ run_windows.bat
 ```text
 RKh-CFS-Termux-v0.1.2/
 ├─ rkh_cfs_termux.py
-├─ install_termux.sh
 ├─ run.sh
+├─ xray
+├─ geoip.dat
+├─ geosite.dat
 ├─ requirements.txt
 └─ results/
 ```
@@ -113,10 +115,14 @@ RKh-CFS-Termux-v0.1.2/
 ```bash
 pkg update -y
 pkg install -y unzip
-unzip RKh-CFS-Termux-v0.1.2.zip
+pkg install python -y
+pkg install wget unzip -y
+mkdir -p RKh-CFS-Termux-v0.1.2
 cd RKh-CFS-Termux-v0.1.2
-chmod +x install_termux.sh run.sh
-./install_termux.sh
+wget https://github.com/rezakhosh78/RKh-CF-Scanner/releases/download/v0.1.2/RKh-CFS-Termux-v0.1.2.zip
+unzip RKh-CFS-Termux-v0.1.2.zip
+pip install -r requirements.txt
+chmod +x run.sh
 ./run.sh
 ```
 
