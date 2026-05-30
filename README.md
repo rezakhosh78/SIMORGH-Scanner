@@ -116,10 +116,12 @@ Copy the Termux ZIP file to your phone, then run:
 pkg update -y
 pkg install -y unzip
 pkg install python -y
+pkg install wget unzip -y
+mkdir -p RKh-CFS-Termux-v0.1.2
+cd RKh-CFS-Termux-v0.1.2
 wget https://github.com/rezakhosh78/RKh-CF-Scanner/releases/download/v0.1.2/RKh-CFS-Termux-v0.1.2.zip
 unzip RKh-CFS-Termux-v0.1.2.zip
 pip install -r requirements.txt
-cd RKh-CFS-Termux-v0.1.2
 chmod +x run.sh
 ./run.sh
 ```
