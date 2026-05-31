@@ -51,7 +51,6 @@ jobs:
           check_dir  "ip-ranges"
 
           if [ "$missing" -eq 1 ]; then
-            echo "Some required files are missing."
             exit 1
           fi
 
@@ -82,7 +81,6 @@ jobs:
         run: |
           WIN_DIR="RKh-CFS-v${VERSION}"
 
-          mkdir -p "dist/${WIN_DIR}"
           mkdir -p "dist/${WIN_DIR}/configs/temp"
           mkdir -p "dist/${WIN_DIR}/results"
 
@@ -104,28 +102,25 @@ jobs:
 
       - name: Prepare Termux ZIP
         run: |
-          TERMUX_DIR="RKh-CFS-Termux-v${VERSION}"
+          mkdir -p dist/termux-temp/configs/temp
+          mkdir -p dist/termux-temp/results
 
-          mkdir -p "dist/${TERMUX_DIR}"
-          mkdir -p "dist/${TERMUX_DIR}/configs/temp"
-          mkdir -p "dist/${TERMUX_DIR}/results"
+          cp "RKh-CFS-Termux-v${VERSION}.py" dist/termux-temp/
+          cp "run.sh" dist/termux-temp/
+          cp "requirements.txt" dist/termux-temp/
+          cp "README.md" dist/termux-temp/
+          cp "README_FA.md" dist/termux-temp/
+          cp -r "ip-ranges" dist/termux-temp/
 
-          cp "RKh-CFS-Termux-v${VERSION}.py" "dist/${TERMUX_DIR}/"
-          cp "run.sh" "dist/${TERMUX_DIR}/"
-          cp "requirements.txt" "dist/${TERMUX_DIR}/"
-          cp "README.md" "dist/${TERMUX_DIR}/"
-          cp "README_FA.md" "dist/${TERMUX_DIR}/"
-          cp -r "ip-ranges" "dist/${TERMUX_DIR}/"
+          cp "xray-downloads/android/xray" dist/termux-temp/
+          cp "xray-downloads/android/geoip.dat" dist/termux-temp/
+          cp "xray-downloads/android/geosite.dat" dist/termux-temp/
 
-          cp "xray-downloads/android/xray" "dist/${TERMUX_DIR}/"
-          cp "xray-downloads/android/geoip.dat" "dist/${TERMUX_DIR}/"
-          cp "xray-downloads/android/geosite.dat" "dist/${TERMUX_DIR}/"
+          chmod +x dist/termux-temp/run.sh
+          chmod +x dist/termux-temp/xray
 
-          chmod +x "dist/${TERMUX_DIR}/run.sh"
-          chmod +x "dist/${TERMUX_DIR}/xray"
-
-          cd dist
-          zip -r "RKh-CFS-Termux-v${VERSION}.zip" "${TERMUX_DIR}" \
+          cd dist/termux-temp
+          zip -r "../RKh-CFS-Termux-v${VERSION}.zip" . \
             -x "**/__pycache__/*" \
             -x "**/*.pyc" \
             -x "**/install_termux.sh" \
