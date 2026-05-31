@@ -117,6 +117,52 @@ jobs:
           echo "ZIP sizes:"
           ls -lh dist/*.zip
 
+      - name: Write release notes
+        run: |
+          cat > release-notes.md <<'EOF'
+          ✨ تغییرات مهم v0.1.4
+
+          - TUI رنگی‌تر و مرتب‌تر با Rich.
+          - گزینه برگشت در مراحل اصلی اضافه شده.
+          - منوها هم با عدد کار می‌کنند، هم با کلیدهای جهت‌دار:
+            - `↑ / ↓`
+            - `Space`
+            - `Enter`
+          - دو حالت اصلی برای انتخاب تارگت:
+            - ورود دستی IP / CIDR / Range
+            - استفاده از لیست آماده ISPها
+          - لیست ISPها به دو دسته تقسیم شده:
+            - ISPهای ایران
+            - ISPهای خارج
+          - بخش ورود دستی چندخطی شده و می‌توانی چندین رنج را یکجا Paste کنی.
+          - مقدار پیش‌فرض Maximum targets بی‌نهایت است؛ با Enter همه تارگت‌ها اسکن می‌شوند.
+          - اگر وسط scan، re-check یا speed-test کلید `Ctrl+C` بزنی، خروجی‌های جمع‌شده تا همان لحظه ذخیره می‌شوند.
+          - در مرحله Re-checking Latency، متن `5 real Xray test(s) per IP` برای تست واقعی چندباره هر IP نمایش داده می‌شود.
+          - نسخه Termux حالا با `run.sh` اجرا می‌شود و اسکریپت نصب جداگانه ندارد.
+
+          🚀 قابلیت‌ها
+
+          - تست واقعی VLESS با Xray Core
+          - ورود دستی IP، CIDR و Range
+          - امکان Paste کردن چندین تارگت به‌صورت یکجا
+          - لیست آماده ISPها
+          - دسته‌بندی ایران و خارج
+          - انتخاب چند ISP برای اسکن
+          - انتخاب تعداد Worker قبل از اسکن
+          - Re-check اختیاری برای latency
+          - Speed-test اختیاری
+          - خروجی TXT و CSV
+          - حالت CLI برای اجرای سریع‌تر و خودکار
+          EOF
+
+      - name: Update release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "v${VERSION}" \
+            --title "RKh-CFS v${VERSION}" \
+            --notes-file release-notes.md
+
       - name: Upload ZIP files to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
