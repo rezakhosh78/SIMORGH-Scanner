@@ -1,4 +1,4 @@
-name: Upload Existing Release Assets
+name: Build and Upload v0.1.4 Assets
 
 on:
   workflow_dispatch:
@@ -17,19 +17,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check files
+      - name: Prepare Windows ZIP
         run: |
-          pwd
-          ls -lah
-          ls -lah release-assets
-          test -f release-assets/RKh-CFS-win-v0.1.4.zip
-          test -f release-assets/RKh-CFS-Termux-v0.1.4.zip
+          mkdir -p dist/RKh-CFS-v0.1.4
+          cp RKh-CFS-v0.1.4.py dist/RKh-CFS-v0.1.4/
+          cp run_windows.bat dist/RKh-CFS-v0.1.4/
+          cp requirements.txt dist/RKh-CFS-v0.1.4/
+          cp README.md dist/RKh-CFS-v0.1.4/
+          cp README_FA.md dist/RKh-CFS-v0.1.4/
+          cp -r ip-ranges dist/RKh-CFS-v0.1.4/
+          mkdir -p dist/RKh-CFS-v0.1.4/results
+          cd dist
+          zip -r RKh-CFS-win-v0.1.4.zip RKh-CFS-v0.1.4
 
-      - name: Upload ZIP files to v0.1.4
+      - name: Upload ZIP to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload v0.1.4 \
-            release-assets/RKh-CFS-win-v0.1.4.zip \
-            release-assets/RKh-CFS-Termux-v0.1.4.zip \
+            dist/RKh-CFS-win-v0.1.4.zip \
             --clobber
