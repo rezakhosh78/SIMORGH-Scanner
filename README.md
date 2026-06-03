@@ -384,8 +384,6 @@ python RKh-CFS-v0.2.0.py -c "vless://..." -t 104.16.0.0/24 172.64.0.0/24 --concu
 - Suggested Windows concurrency: `10` to `30`
 - Suggested Android Go concurrency: `15` to `30`
 - For speed-test on mobile, set speed workers to `2` or `3`.
-- If the Single EXE runtime breaks, delete its folder from `%LOCALAPPDATA%\RKh-CFS` and run the EXE again.
-
 ---
 
 ## ⚠️ Donate
