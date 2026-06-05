@@ -310,7 +310,7 @@ pkg install python -y
 pkg install wget unzip -y
 mkdir -p RKh-CFS-Termux-v0.2.0
 cd RKh-CFS-Termux-v0.2.0
-wget https://github.com/rezakhosh78/RKh-CF-Scanner/releases/download/v0.2.0/RKh-CFS-Termux-v0.2.0.zip
+wget https://github.com/rezakhosh78/RKh-CF-Scanner/releases/download/0.2.0/RKh-CFS-Termux-v0.2.0.zip
 unzip RKh-CFS-Termux-v0.2.0.zip
 pip install -r requirements.txt
 chmod +x run.sh
