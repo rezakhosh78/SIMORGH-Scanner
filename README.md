@@ -1,4 +1,4 @@
-# 🦅 SIMORGH Scanner v0.3.0
+# 🐦‍🔥 SIMORGH Scanner v0.3.0
 
 [فارسی](README_FA.md)
 
