@@ -1,4 +1,4 @@
-# 🦅 SIMORGH Scanner v0.3.0
+# 🐦‍🔥 SIMORGH Scanner v0.3.0
 
 [فارسی](README_FA.md)
 
@@ -40,7 +40,6 @@ The v0.3.0 release files are available from the repository **Releases** page.
   - animated radar
   - current application status
 - Improved responsive behavior for different resolutions and window sizes.
-- Removed unnecessary visual framing around the radar.
 
 ### 📑 Page structure
 
@@ -122,8 +121,6 @@ The summary also shows:
 - It becomes floating when its original position leaves the visible area.
 - It returns automatically when scrolling upward.
 - Enter and exit animations are smooth and immediate.
-- Button hover effects remain active while floating.
-- Unwanted white hover borders were removed.
 
 ### 🌐 Local server
 
