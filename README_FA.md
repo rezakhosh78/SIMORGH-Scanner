@@ -332,7 +332,7 @@ selected_speed_tested_ips.txt
 USDT BEP20:
 
 ```text
-0x304B5D9e118732C98FA60c473A763aD5076FFfb0
+0xeaA77532878d92b2218690605DebD192cd4f018f
 ```
 
 ---
