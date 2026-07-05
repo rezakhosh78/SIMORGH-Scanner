@@ -1,4 +1,4 @@
-name: Build & Release Signed Android APK v0.3.0
+name: Build & Release Signed Android APK v0.3.0 (SDK Fix v2)
 
 on:
   workflow_dispatch:
@@ -67,15 +67,15 @@ jobs:
 
           echo "✅ All Android signing secrets are available."
 
-      - name: Install Android SDK packages
-        run: |
-          set -euo pipefail
-
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+      - name: Set up Android SDK and required packages
+        uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
 
       - name: Validate Android project
         run: |
