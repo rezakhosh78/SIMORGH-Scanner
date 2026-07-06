@@ -1,0 +1,382 @@
+name: Build & Release Signed Android APK v0.3.1 (SDK Fix v2)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v0.3.1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: simorgh-android-release-v0.3.1
+  cancel-in-progress: false
+
+env:
+  VERSION: "0.3.1"
+  TAG_NAME: "v0.3.1"
+  APK_NAME: "SIMORGH-Scanner-v0.3.1-arm64-v8.apk"
+  ANDROID_PROJECT_DIR: "Android"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build-sign-release:
+    name: Build, sign and publish arm64-v8 APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: |
+            Android/*.gradle
+            Android/gradle.properties
+            Android/gradle/wrapper/gradle-wrapper.properties
+            Android/app/*.gradle
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache: true
+          cache-dependency-path: Android/go-backend/go.mod
+
+      - name: Validate required signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          [ -n "$KEYSTORE_BASE64" ] || { echo "❌ Missing secret: ANDROID_KEYSTORE_BASE64"; exit 1; }
+          [ -n "$KEYSTORE_PASSWORD" ] || { echo "❌ Missing secret: ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          [ -n "$KEY_ALIAS" ] || { echo "❌ Missing secret: ANDROID_KEY_ALIAS"; exit 1; }
+          [ -n "$KEY_PASSWORD" ] || { echo "❌ Missing secret: ANDROID_KEY_PASSWORD"; exit 1; }
+
+          echo "✅ All Android signing secrets are available."
+
+      - name: Set up Android SDK and required packages
+        uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+
+      - name: Validate Android project
+        run: |
+          set -euo pipefail
+
+          test -f Android/gradlew
+          test -f Android/settings.gradle
+          test -f Android/build.gradle
+          test -f Android/app/build.gradle
+          test -f Android/go-backend/go.mod
+          test -f Android/go-backend/main.go
+          test -f Android/app/src/main/jniLibs/arm64-v8a/libxray.so
+
+          grep -q 'versionName "0.3.1"' Android/app/build.gradle
+          grep -q 'abiFilters "arm64-v8a"' Android/app/build.gradle
+
+          echo "✅ Android project, versionName and arm64 ABI configuration are valid."
+
+
+      - name: Apply v0.3.1 local server settings
+        run: |
+          set -euo pipefail
+
+          sed -i 's/const port = "8080"/const port = "21301"/' \
+            Android/go-backend/main.go
+
+          sed -i 's#http://127.0.0.1:8080#http://127.0.0.1:21301#g' \
+            Android/app/src/main/java/com/rkhcfs/go/MainActivity.java
+
+          grep -q 'const port = "21301"' Android/go-backend/main.go
+          grep -q 'http://127.0.0.1:21301' \
+            Android/app/src/main/java/com/rkhcfs/go/MainActivity.java
+
+          echo "✅ Android backend and WebView are configured for 127.0.0.1:21301."
+
+      - name: Build native Go backend for Android arm64
+        working-directory: Android/go-backend
+        run: |
+          set -euo pipefail
+
+          OUTPUT="../app/src/main/jniLibs/arm64-v8a/librkhcfs_go.so"
+          mkdir -p "$(dirname "$OUTPUT")"
+          rm -f "$OUTPUT"
+
+          GOOS=android \
+          GOARCH=arm64 \
+          CGO_ENABLED=0 \
+          go build \
+            -buildmode=pie \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o "$OUTPUT" \
+            .
+
+          test -s "$OUTPUT"
+
+          SIZE="$(stat -c%s "$OUTPUT")"
+          if [ "$SIZE" -lt 1048576 ]; then
+            echo "❌ Native Go backend is unexpectedly small: $SIZE bytes"
+            exit 1
+          fi
+
+          file "$OUTPUT"
+          echo "✅ Native Go backend created: $OUTPUT ($SIZE bytes)"
+
+      - name: Build unsigned release APK
+        working-directory: Android
+        run: |
+          set -euo pipefail
+
+          chmod +x gradlew
+          ./gradlew \
+            --no-daemon \
+            --stacktrace \
+            --warning-mode all \
+            clean \
+            :app:assembleRelease
+
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+
+          KEYSTORE_PATH="$RUNNER_TEMP/rkh-cfs-release.p12"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+
+          keytool \
+            -list \
+            -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storetype PKCS12 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            | grep -E 'Alias name:|SHA1:|SHA256:|Valid from:' || true
+
+          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "✅ Keystore decoded and alias validated."
+
+      - name: Align and sign APK
+        env:
+          ANDROID_KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+
+          BUILD_TOOLS_DIR="$ANDROID_HOME/build-tools/35.0.0"
+          ZIPALIGN="$BUILD_TOOLS_DIR/zipalign"
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+
+          test -x "$ZIPALIGN"
+          test -x "$APKSIGNER"
+
+          UNSIGNED_APK="$(find Android/app/build/outputs/apk/release -maxdepth 1 -type f -name '*-unsigned.apk' -print -quit)"
+
+          if [ -z "$UNSIGNED_APK" ]; then
+            UNSIGNED_APK="$(find Android/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          fi
+
+          [ -n "$UNSIGNED_APK" ] || { echo "❌ Release APK was not generated."; exit 1; }
+          test -f "$UNSIGNED_APK"
+
+          mkdir -p dist
+          ALIGNED_APK="$RUNNER_TEMP/SIMORGH-Scanner-v${VERSION}-aligned.apk"
+          FINAL_APK="dist/$APK_NAME"
+
+          "$ZIPALIGN" \
+            -P 16 \
+            -f \
+            -v \
+            4 \
+            "$UNSIGNED_APK" \
+            "$ALIGNED_APK"
+
+          "$APKSIGNER" sign \
+            --ks "$KEYSTORE_PATH" \
+            --ks-type PKCS12 \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass env:ANDROID_KS_PASS \
+            --key-pass env:ANDROID_KEY_PASS \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "$FINAL_APK" \
+            "$ALIGNED_APK"
+
+          "$ZIPALIGN" -c -P 16 -v 4 "$FINAL_APK"
+
+          "$APKSIGNER" verify \
+            --verbose \
+            --print-certs \
+            "$FINAL_APK"
+
+          test -s "$FINAL_APK"
+          echo "✅ Signed APK created: $FINAL_APK"
+
+      - name: Verify arm64-v8 APK contents
+        run: |
+          set -euo pipefail
+
+          APK="dist/$APK_NAME"
+
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/librkhcfs_go.so'
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libxray.so'
+
+          if unzip -l "$APK" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/'; then
+            echo "❌ Unexpected non-arm64 ABI found in APK."
+            exit 1
+          fi
+
+          echo "✅ APK contains only the intended arm64-v8a native libraries."
+          ls -lh "$APK"
+          sha256sum "$APK"
+
+      - name: Write bilingual release changelog
+        run: |
+          cat > release-notes.md <<'EOF'
+          # 🦅 SIMORGH Scanner v0.3.1 Changelog
+
+          ## 🇮🇷 فارسی
+
+          ### ✨ قابلیت‌های جدید
+
+          - اضافه‌شدن بخش‌های باز و بسته‌شونده برای هر ISP در **ISP Files**
+          - مخفی‌بودن رنج‌های IP هر ISP به‌صورت پیش‌فرض و نمایش آن‌ها با کلیک روی نام ISP یا آیکن بازشدن
+          - امکان انتخاب جداگانه هر رنج IP
+          - حفظ تیک اصلی هر ISP برای انتخاب یا لغو انتخاب همه رنج‌های همان ISP
+          - نمایش حالت نیمه‌انتخاب‌شده برای ISPهایی که فقط بخشی از رنج‌هایشان انتخاب شده است
+          - نمایش تعداد ISPهای انتخاب‌شده زیر بخش **ISP Files**
+          - اضافه‌شدن حباب ثابت کنترل اسکن زیر هدر در برگه‌های **Scanner** و **Results**
+          - اضافه‌شدن بازیابی خودکار وضعیت اسکن بعد از قطع موقت بک‌اند یا بازسازی WebView
+          - اضافه‌شدن بررسی سلامت بک‌اند و اتصال مجدد خودکار
+
+          ### 🔄 تغییرات
+
+          - انتقال دکمه‌های `Start Scan`، `Stop`، `Cancel` و `Continue` به حباب ثابت کنترل اسکن
+          - نمایش حباب کنترل اسکن فقط در برگه‌های **Scanner** و **Results**
+          - باقی‌ماندن دکمه `Clear` در محل قبلی
+          - دکمه `Clear` اکنون تارگت دستی و انتخاب‌های ISP/IP Range را پاک می‌کند
+          - مقدار `VLESS Config` با دکمه `Clear` پاک نمی‌شود
+          - تغییر فونت نام ISPها و متن فایل‌های ISP به فونتی ساده‌تر و خواناتر
+          - تغییر راهنمای فیلد `Workers` به `Maximum 100`
+          - ارسال فقط رنج‌های IP انتخاب‌شده به موتور اسکن
+          - بهبود چرخه عمر بک‌اند اندروید و مستقل‌شدن آن از بازسازی Activity
+          - اصلاح بسته‌بندی کتابخانه آماده Go برای جلوگیری از وابستگی غیرضروری به NDK هنگام ساخت APK
+
+          ### 🛠️ رفع اشکالات
+
+          - رفع خطای مقطعی `Failed to fetch` در شروع اسکن یا اسکن مجدد
+          - رفع نیاز گاه‌به‌گاه به Force Stop کامل برنامه برای شروع دوباره اسکن
+          - رفع نمایش اشتباه `Completed` و توقف اسکن هنگام جابه‌جایی بین برگه‌ها
+          - جلوگیری از تأثیر جابه‌جایی بین `Scanner`، `Results`، `Files` و `Logs` بر اجرای اسکن
+          - ثبت وضعیت `Completed` فقط پس از دریافت تأیید قطعی پایان اسکن از بک‌اند
+          - جلوگیری از تشخیص پاسخ‌های ناقص یا موقت بک‌اند به‌عنوان پایان اسکن
+          - جلوگیری از ایجاد اسکن تکراری با ارسال دوباره درخواست شروع
+          - بازیابی صحیح دکمه‌ها، تایمرها و وضعیت رابط پس از خطاهای اتصال
+          - جلوگیری از بسته‌شدن بک‌اند هنگام بازسازی Activity یا WebView
+          - جلوگیری از توقف کامل موتور اسکن در اثر خطای یک Worker
+          - کاهش درخواست‌های غیرضروری بخش Logs هنگام اجرای اسکن
+
+          ---
+
+          ## 🇬🇧 English
+
+          ### ✨ Added
+
+          - Added expandable ISP sections in **ISP Files**
+          - ISP IP ranges are hidden by default and can be shown by clicking the ISP name or expand icon
+          - Added individual selection for each IP range
+          - Kept a main checkbox for selecting or deselecting every range of an ISP
+          - Added a partial-selection state when only some ranges of an ISP are selected
+          - Added the selected ISP count below the **ISP Files** section
+          - Added a persistent scan-control bubble below the header in the **Scanner** and **Results** tabs
+          - Added automatic scan-state recovery after temporary backend or WebView interruptions
+          - Added backend health checking and automatic reconnection
+
+          ### 🔄 Changed
+
+          - Moved `Start Scan`, `Stop`, `Cancel`, and `Continue` into the fixed scan-control bubble
+          - The scan-control bubble is shown only in the **Scanner** and **Results** tabs
+          - Kept the `Clear` button in its original location
+          - The `Clear` button now clears the Manual Target and selected ISP/IP ranges
+          - The `Clear` button no longer clears the `VLESS Config`
+          - Changed ISP names and ISP file text to a simpler, more readable font
+          - Changed the Workers field hint to `Maximum 100`
+          - Only selected ISP IP ranges are sent to the scan engine
+          - Improved the Android backend lifecycle so it is independent of Activity recreation
+          - Improved packaging of the prebuilt Go library to avoid an unnecessary NDK dependency during APK builds
+
+          ### 🛠️ Fixed
+
+          - Fixed intermittent `Failed to fetch` errors when starting or restarting a scan
+          - Fixed cases where a complete Force Stop was required before scanning again
+          - Fixed scans incorrectly showing `Completed` and stopping while switching tabs
+          - Switching between `Scanner`, `Results`, `Files`, and `Logs` no longer affects scan execution
+          - A scan is marked `Completed` only after confirmed completion from the backend
+          - Temporary or incomplete backend responses are no longer treated as scan completion
+          - Prevented duplicate scans when the same start request is submitted again
+          - Restored buttons, timers, and UI state correctly after connection errors
+          - Prevented the backend from shutting down during Activity or WebView recreation
+          - Prevented a single Worker error from stopping the whole scan engine
+          - Reduced unnecessary Logs polling during active scans
+          EOF
+
+      - name: Upload signed APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIMORGH-Scanner-v0.3.1-arm64-v8
+          path: dist/SIMORGH-Scanner-v0.3.1-arm64-v8.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          APK="dist/$APK_NAME"
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "ℹ️ Release $TAG_NAME already exists; updating notes and APK."
+            gh release edit "$TAG_NAME" \
+              --title "SIMORGH Scanner v${VERSION}" \
+              --notes-file release-notes.md
+
+            gh release upload "$TAG_NAME" \
+              "$APK" \
+              --clobber
+          else
+            echo "ℹ️ Creating release $TAG_NAME."
+            gh release create "$TAG_NAME" \
+              "$APK" \
+              --target "$GITHUB_SHA" \
+              --title "SIMORGH Scanner v${VERSION}" \
+              --notes-file release-notes.md
+          fi
+
+          echo "✅ Release published with asset: $APK_NAME"
