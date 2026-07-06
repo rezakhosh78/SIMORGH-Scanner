@@ -1,6 +1,6 @@
 <div dir="rtl">
 
-# 🐦‍🔥 اسکنر سیمرغ v0.3.0
+# 🐦‍🔥 اسکنر سیمرغ
 
 [English](README.md)
 
