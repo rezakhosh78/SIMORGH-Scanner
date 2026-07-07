@@ -1,0 +1,1 @@
+Run BUILD_GO_ANDROID_ARM64.bat to create librkhcfs_go.so here.

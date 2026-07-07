@@ -1,0 +1,64 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.rkhcfs.go"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.rkhcfs.go"
+        minSdk 24
+        targetSdk 35
+        versionCode 451
+        versionName "0.3.1"
+
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            // The Go backend is already a complete prebuilt ARM64 library.
+            // Keep it unstripped so Gradle does not require a local Android NDK.
+            keepDebugSymbols += ["**/librkhcfs_go.so"]
+        }
+    }
+}
+
+// Prevent building a broken APK without the native Go backend.
+tasks.register("verifyGoBackendBinary") {
+    doLast {
+        def backend = file("src/main/jniLibs/arm64-v8a/librkhcfs_go.so")
+        if (!backend.exists() || backend.length() < 1024 * 1024) {
+            throw new GradleException(
+                "\nMissing native Go backend: app/src/main/jniLibs/arm64-v8a/librkhcfs_go.so\n\n" +
+                "Build it before creating the APK:\n" +
+                ".\\BUILD_GO_ANDROID_ARM64.bat\n\n" +
+                "NDK is not required in v0.3.1. Only Go must be installed and available in PATH.\n\n" +
+                "Then confirm:\n" +
+                'Test-Path ".\\app\\src\\main\\jniLibs\\arm64-v8a\\librkhcfs_go.so"' + "\n"
+            )
+        }
+    }
+}
+
+preBuild.dependsOn("verifyGoBackendBinary")
+
+
+// Android Studio/IntelliJ may request this IDE model task while importing a
+// Groovy-only Android project. Keeping a no-op task prevents sync from failing
+// with: Task 'prepareKotlinBuildScriptModel' not found in project ':app'.
+if (tasks.findByName("prepareKotlinBuildScriptModel") == null) {
+    tasks.register("prepareKotlinBuildScriptModel") {
+        group = "ide"
+        description = "Compatibility model task used only during Android Studio sync."
+    }
+}

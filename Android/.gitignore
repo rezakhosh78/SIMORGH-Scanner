@@ -1,0 +1,14 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+SIMORGH_ISP_DATA_KEY.txt
+.simorgh_isp_key
+*.private-key
+app/src/main/jniLibs/arm64-v8a/librkhcfs_go.so
+ip_ranges.zip
