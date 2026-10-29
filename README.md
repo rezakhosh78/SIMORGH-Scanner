@@ -8,6 +8,13 @@ Version **0.3.0** introduces a complete neon-retro Web UI redesign, a fully offl
 
 > Use this project only with your own configurations and authorized IP ranges.
 
+## Support
+TRON:
+TUnX9wBWzhD2AK9GqB9FJekKaxCvYJNh18
+
+Nowpayment:
+https://nowpayments.io/donation/pingplas
+
 ---
 
 ## 🖼️ Screenshots
