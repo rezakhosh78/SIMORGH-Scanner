@@ -11,6 +11,13 @@
 > این پروژه را فقط برای کانفیگ‌های شخصی و رنج‌هایی که مجاز به آزمایش آن‌ها هستید استفاده کنید.
 
 ---
+حمایت
+TRON:
+TUnX9wBWzhD2AK9GqB9FJekKaxCvYJNh18
+
+Nowpayment:
+https://nowpayments.io/donation/pingplas
+
 
 ## 🖼️ تصاویر برنامه
 
