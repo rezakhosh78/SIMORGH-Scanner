@@ -334,16 +334,6 @@ The Python scanner may also create CSV files for compatibility, while the main W
 
 ---
 
-## 💚 Donate
-
-USDT BEP20:
-
-```text
-0xeaA77532878d92b2218690605DebD192cd4f018f
-```
-
----
-
 ## ⚠️ Disclaimer
 
 SIMORGH Scanner is intended for testing personal configurations and authorized ranges. You are responsible for how you use it.
